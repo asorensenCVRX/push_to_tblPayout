@@ -38,6 +38,8 @@ FROM
             cast(A.YTD_BASE_BONUS_PAID AS varchar(max)) AS YTD_BASE_BONUS_PAID
         FROM
             dbo.tmpFCE_PO A
+        WHERE
+            FCE_EMAIL NOT IN ('bkelly@cvrx.com')
     ) P UNPIVOT (
         [VALUE] FOR [CATEGORY] IN (
             QTY,
