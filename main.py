@@ -1,7 +1,11 @@
 from database import engine
 from sqlalchemy import text
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 conn = engine.connect()
+last_month_full_date = datetime.now() - relativedelta(months=1)
+last_month = last_month_full_date.strftime("%Y-%m")
 
 
 def remove_tmp_tables():
@@ -38,13 +42,17 @@ def create_tmp_tables():
 
 
 def push_all_to_tblpayout():
+    with open(r"queries/integrity_check.sql") as file:
+        integrity_check = file.read()
     with open(r"queries/push_AM.sql") as file:
         push_am = file.read()
     with open(r"queries/push_FCE.sql") as file:
         push_fce = file.read()
     with open(r"queries/push_RM.sql") as file:
         push_rm = file.read()
-    print("Pushing all data to tblPayout...")
+    print(f"Deleting from tblPayout all records where YYYYMM = {last_month} (so there will not be duplicates).")
+    conn.execute(text(integrity_check))
+    conn.commit()
     conn.execute(text(push_am))
     conn.execute(text(push_fce))
     conn.execute(text(push_rm))
