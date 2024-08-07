@@ -62,6 +62,7 @@ SELECT
 FROM
     (
         /*** THIS IS THE GROUP BY AND PO SUBQUERY START **/
+        /* need to calculate RE_05 and RE_07 CSRs H2 payouts using ONLY H2 sales and revised FY quota for these two regions */
         SELECT
             (
                 SELECT
@@ -128,10 +129,17 @@ FROM
                 ),
                 0
             ) AS [YTD_BASE_BONUS_PAID],
-            ISNULL(
-                CAST(
-                    ISNULL(C1.SALES / NULLIF(X.QUOTA, 0), 0) * (C2.BASE_BONUS) AS MONEY
-                ) - ISNULL(
+            CASE
+                WHEN C1.SALES_CREDIT_FCE_EMAIL IN (
+                    /* CSRs affected by RE_05 and RE_07 realignment */
+                    'hhussey@cvrx.com',
+                    'kmurphy@cvrx.com',
+                    'rmason@cvrx.com',
+                    'ycruea@cvrx.com'
+                ) THEN cast(
+                    /* calculate their payments off only H2 sales minus h2 payouts for previous h2 months */
+                    (C1.H2_SALES / nullif(X.QUOTA, 0)) * C2.BASE_BONUS AS money
+                ) - isnull(
                     (
                         SELECT
                             SUM(CAST([VALUE] AS MONEY))
@@ -148,12 +156,38 @@ FROM
                                 WHERE
                                     [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
                             )
-                            AND c1.SALES_CREDIT_FCE_EMAIL = A.EID
+                            AND YYYYMM >= '2024_07'
                     ),
                     0
-                ),
-                0
-            ) AS [BASE_BONUS_PO],
+                )
+                /* calc all other CSRs off FY sales minus FY payouts for previous 2024 months */
+                ELSE ISNULL(
+                    CAST(
+                        ISNULL(C1.SALES / NULLIF(X.QUOTA, 0), 0) * (C2.BASE_BONUS) AS MONEY
+                    ) - ISNULL(
+                        (
+                            SELECT
+                                SUM(CAST([VALUE] AS MONEY))
+                            FROM
+                                [dbo].[qryPayout_ADJ] A
+                            WHERE
+                                ROLE = 'FCE'
+                                AND CATEGORY = 'BASE_BONUS_PO'
+                                AND YYYYMM < (
+                                    SELECT
+                                        YYYYMM
+                                    FROM
+                                        qryCalendar
+                                    WHERE
+                                        [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
+                                )
+                                AND c1.SALES_CREDIT_FCE_EMAIL = A.EID
+                        ),
+                        0
+                    ),
+                    0
+                )
+            END AS [BASE_BONUS_PO],
             ISNULL(
                 (
                     SELECT
@@ -175,7 +209,7 @@ FROM
                 ),
                 0
             ) AS [TGT_BONUS_PAID],
-            -- c3.PO_PER [TGT_BONUS_PO],
+            -- c3.PO_PER [TGT_BONUS_PO], 
             OTHER_PO,
             [CPAS_SPIFF_DEDUCTION]
         FROM
@@ -187,6 +221,12 @@ FROM
                     DOH,
                     ISNULL(SUM([QTY]), 0) [QTY],
                     ISNULL(SUM([SALES_BASE]), 0) [SALES],
+                    SUM(
+                        CASE
+                            WHEN CLOSE_YYYYMM BETWEEN '2024_07'
+                            AND '2024_12' THEN SALES_BASE
+                        END
+                    ) AS H2_SALES,
                     ISNULL(SUM([isTarget?]), 0) [YTD_TGT_IMPLANTS],
                     SUM(PO_PER) [PO_PER],
                     SUM(TGT_PO) [TGT_PO],
