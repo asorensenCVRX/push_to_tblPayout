@@ -234,6 +234,16 @@ FROM
                     0 OTHER_PO --SUM(CM_AUX_PO) OTHER_PO
                 FROM
                     qry_COMP_FCE_DETAIL AS T
+                WHERE
+                    SALES_CREDIT_FCE_EMAIL IN (
+                        SELECT
+                            REP_EMAIL
+                        FROM
+                            qryRoster
+                        WHERE
+                            [isLATEST?] = 1
+                            AND [ROLE] = 'FCE'
+                    )
                 GROUP BY
                     [SALES_CREDIT_FCE_EMAIL],
                     [NAME_REP],
@@ -260,42 +270,13 @@ FROM
                                     A.ACTIVE_YYYYMM,
                                     A.DOT_YYYYMM,
                                     ISNULL(
-                                        CASE
-                                            WHEN A.[KEY] IN ('RE_05', 'RE_07') THEN REVISED_Q.QUOTA_FY
-                                            ELSE R.Quota
-                                        END,
+                                        R.Quota,
                                         y.QUOTA_FY
                                     ) QUOTA
                                 FROM
                                     qryAlign_FCE A
                                     LEFT JOIN tblRates_RM R ON R.REGION_ID = A.[KEY]
                                     LEFT JOIN qryRates_AM Y ON a.[KEY] = Y.TERR_ID
-                                    LEFT JOIN (
-                                        /*  This query takes into account H2 quota changes for RE_07 and RE_05 so CSRs are calc'd on original H1 quotas and revised H2 quotas */
-                                        SELECT
-                                            B.REGION_ID,
-                                            CASE
-                                                WHEN REGION_ID = 'RE_07' THEN 1252705.23
-                                                WHEN REGION_ID = 'RE_05' THEN 207248.37
-                                                ELSE Q1_Q
-                                            END AS Q1_Q,
-                                            CASE
-                                                WHEN REGION_ID = 'RE_07' THEN 1491315.75
-                                                WHEN REGION_ID = 'RE_05' THEN 246724.25
-                                                ELSE Q2_Q
-                                            END AS Q2_Q,
-                                            A.Q3_Q,
-                                            A.Q4_Q,
-                                            CASE
-                                                WHEN REGION_ID = 'RE_07' THEN 1252705.23 + 1491315.75 + Q3_Q + Q4_Q
-                                                WHEN REGION_ID = 'RE_05' THEN 207248.37 + 246724.25 + Q3_Q + Q4_Q
-                                                ELSE A.QUOTA_FY
-                                            END AS QUOTA_FY
-                                        FROM
-                                            qryRates_RM A
-                                            LEFT JOIN tblRates_RM B ON A.EID = B.EID
-                                            /* SUB QUERY END */
-                                    ) AS REVISED_Q ON A.[KEY] = REVISED_Q.REGION_ID
                                 WHERE
                                     [TYPE] IN('REGION', 'TERR')
                             ) AS A
