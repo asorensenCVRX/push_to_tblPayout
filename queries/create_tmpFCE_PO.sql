@@ -135,7 +135,9 @@ FROM
                     'hhussey@cvrx.com',
                     'kmurphy@cvrx.com',
                     'rmason@cvrx.com',
-                    'ycruea@cvrx.com'
+                    'ycruea@cvrx.com',
+                    'swalz@cvrx.com',
+                    'cmccurley@cvrx.com'
                 ) THEN cast(
                     /* calculate their payments off only H2 sales minus h2 payouts for previous h2 months */
                     (C1.H2_SALES / nullif(X.QUOTA, 0)) * C2.BASE_BONUS AS money

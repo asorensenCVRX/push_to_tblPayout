@@ -57,4 +57,4 @@ FROM
             GUR_ADJ,
             PO_AMT
         )
-    ) AS UNPVT;
+    ) AS UNPVT
