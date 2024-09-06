@@ -131,7 +131,7 @@ FROM
             ) AS [YTD_BASE_BONUS_PAID],
             CASE
                 WHEN C1.SALES_CREDIT_FCE_EMAIL IN (
-                    /* CSRs affected by RE_05 and RE_07 realignment */
+                    /* CSRs affected by H2 baseline/quota realignment */
                     'hhussey@cvrx.com',
                     'kmurphy@cvrx.com',
                     'rmason@cvrx.com',
@@ -159,6 +159,7 @@ FROM
                                     [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
                             )
                             AND YYYYMM >= '2024_07'
+                            AND c1.SALES_CREDIT_FCE_EMAIL = a.eid
                     ),
                     0
                 )
