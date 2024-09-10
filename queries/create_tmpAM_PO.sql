@@ -14,6 +14,7 @@ SELECT
     A.FCE_DEDUCTION,
     a.SPIFF_DEDUCTION,
     ISNULL(SP.PO, 0) [CPAS_SPIFF_PO],
+    ISNULL(SP2.PO, 0) [IMPLANT_SPIFF_PO],
     ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0) [AM_TTL_PO],
     SUM(
         ISNULL(
@@ -56,7 +57,7 @@ SELECT
             ELSE ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0) + ISNULL(D.AMT, 0) + ISNULL(SP.PO, 0)
         END,
         0
-    ) AS [PO_AMT] INTO dbo.tmpAM_PO
+    ) + ISNULL(SP2.PO, 0) AS [PO_AMT] INTO dbo.tmpAM_PO
 FROM
     (
         SELECT
@@ -147,11 +148,27 @@ FROM
             EMAIL
         FROM
             [dbo].[tblCPAS_PO]
+        WHERE
+            SPIF_TYPE = 'CPAS'
         GROUP BY
             SPIF_PO_YYYYMM,
             EMAIL
     ) SP ON ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) = SP.EMAIL
     AND sp.SPIF_PO_YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
+    LEFT JOIN (
+        SELECT
+            SPIF_PO_YYYYMM,
+            ISNULL(SUM(PO), 0) [PO],
+            EMAIL
+        FROM
+            [dbo].[tblCPAS_PO]
+        WHERE
+            SPIF_TYPE = 'IMPLANT'
+        GROUP BY
+            SPIF_PO_YYYYMM,
+            EMAIL
+    ) SP2 ON ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) = SP2.EMAIL
+    AND sp2.SPIF_PO_YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
 WHERE
     ISNULL(A.Role, B.ROLE) = 'REP'
     AND ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]) = (
@@ -162,7 +179,7 @@ WHERE
         WHERE
             [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
     )
-    AND LEFT(ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]), 4) = '2024' --AND ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) <> 'ccastillo@cvrx.com'
+    AND LEFT(ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]), 4) = '2024'
 ORDER BY
     ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL),
     ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]);
