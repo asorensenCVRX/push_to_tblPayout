@@ -15,7 +15,7 @@ SELECT
     a.SPIFF_DEDUCTION,
     ISNULL(SP.PO, 0) [CPAS_SPIFF_PO],
     ISNULL(SP2.PO, 0) [IMPLANT_SPIFF_PO],
-    ISNULL(SP3.PO, 0) [REVENUE_SPIFF_PO],
+    ISNULL(SP3.PO, 0) [BULK_SPIFF_PO],
     ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0) [AM_TTL_PO],
     SUM(
         ISNULL(
@@ -178,7 +178,7 @@ FROM
         FROM
             [dbo].[tblCPAS_PO]
         WHERE
-            SPIF_TYPE = 'REVENUE'
+            SPIF_TYPE = 'BULK'
         GROUP BY
             SPIF_PO_YYYYMM,
             EMAIL
