@@ -18,6 +18,7 @@ SELECT
     A.RM_L1_PO,
     A.RM_L2_PO,
     A.RM_L3_PO,
+    ISNULL(SP.PO, 0) AS SPIFF_PO,
     A.AD_PO,
     A.RM_L1_REV,
     A.RM_L2_REV,
@@ -38,8 +39,8 @@ SELECT
     END AS [GUR_ADJ],
     CASE
         WHEN PO_FREQ = 'M'
-        AND B.PO_AMT > ISNULL(RM_TTL_PO, 0) THEN B.PO_AMT
-        ELSE A.RM_TTL_PO
+        AND B.PO_AMT > ISNULL(RM_TTL_PO + SP.PO, 0) THEN B.PO_AMT
+        ELSE A.RM_TTL_PO + SP.PO
     END AS [PO_AMT],
     g.L1,
     g.L2,
@@ -144,6 +145,18 @@ FROM
     AND A.CLOSE_YYYYMM = B.YYYYMM
     LEFT JOIN qryRoster_RM C ON ISNULL(SALES_CREDIT_RM_EMAIL, B.EMP_EMAIL) = C.EMP_EMAIL
     LEFT JOIN qryRates_RM G ON a.SALES_CREDIT_RM_EMAIL = g.EID
+    LEFT JOIN (
+        SELECT
+            SPIF_PO_YYYYMM,
+            ISNULL(SUM(PO), 0) [PO],
+            EMAIL
+        FROM
+            [dbo].[tblCPAS_PO]
+        GROUP BY
+            SPIF_PO_YYYYMM,
+            EMAIL
+    ) SP ON A.SALES_CREDIT_RM_EMAIL = SP.EMAIL
+    AND SP.SPIF_PO_YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
 WHERE
     ISNULL(A.Role, B.ROLE) = 'RM'
     AND ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]) = (

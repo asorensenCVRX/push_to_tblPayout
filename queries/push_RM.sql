@@ -32,7 +32,8 @@ FROM
             CAST(A.AD_PO AS VARCHAR) AS [AD_PO],
             CAST(A.[EARNED_MNTH_PO] AS VARCHAR) AS [EARNED_MNTH_PO],
             CAST(A.[EARNED_QTD_PO] AS VARCHAR) AS [EARNED_QTD_PO],
-            CAST(A.[PO_AMT] AS VARCHAR) AS [PO_AMT]
+            CAST(A.[PO_AMT] AS VARCHAR) AS [PO_AMT],
+            CAST(A.[SPIFF_PO] AS VARCHAR) AS [SPIFF_PO]
         FROM
             dbo.tmpRM_PO A
     ) P UNPIVOT(
@@ -51,6 +52,7 @@ FROM
             [RM_L3_REV],
             [EARNED_MNTH_PO],
             [EARNED_QTD_PO],
-            [PO_AMT]
+            [PO_AMT],
+            [SPIFF_PO]
         )
     ) AS UNPV
