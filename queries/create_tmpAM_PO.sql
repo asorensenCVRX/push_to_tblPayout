@@ -15,11 +15,10 @@ SELECT
     a.SPIFF_DEDUCTION,
     ISNULL(SP.PO, 0) [CPAS_SPIFF_PO],
     ISNULL(SP2.PO, 0) [IMPLANT_SPIFF_PO],
-    ISNULL(SP3.PO, 0) [BULK_SPIFF_PO],
-    ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0) [AM_TTL_PO],
+    ISNULL(A.AM_TTL_PO, 0) [AM_TTL_PO],
     SUM(
         ISNULL(
-            ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0),
+            ISNULL(A.AM_TTL_PO, 0),
             0
         ) + ISNULL(D.AMT, 0)
     ) OVER(
@@ -36,11 +35,11 @@ SELECT
         CASE
             WHEN PO_FREQ = 'M'
             AND B.PO_AMT > ISNULL(
-                ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0),
+                ISNULL(A.AM_TTL_PO, 0),
                 0
             ) + ISNULL(D.AMT, 0) THEN B.PO_AMT - (
                 ISNULL(
-                    ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0),
+                    ISNULL(A.AM_TTL_PO, 0),
                     0
                 ) + ISNULL(D.AMT, 0)
             )
@@ -52,13 +51,13 @@ SELECT
         CASE
             WHEN PO_FREQ = 'M'
             AND B.PO_AMT > ISNULL(
-                ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0),
+                ISNULL(A.AM_TTL_PO, 0),
                 0
             ) + ISNULL(D.AMT, 0) THEN B.PO_AMT
-            ELSE ISNULL(BAT.BAT_IMPLANT_PO, 0) + ISNULL(A.AM_TTL_PO, 0) + ISNULL(D.AMT, 0) + ISNULL(SP.PO, 0)
+            ELSE ISNULL(A.AM_TTL_PO, 0) + ISNULL(D.AMT, 0) + ISNULL(SP.PO, 0)
         END,
         0
-    ) + ISNULL(SP2.PO, 0) + ISNULL(SP3.PO, 0) AS [PO_AMT] INTO dbo.tmpAM_PO
+    ) + ISNULL(SP2.PO, 0) AS [PO_AMT] INTO dbo.tmpAM_PO
 FROM
     (
         SELECT
@@ -79,6 +78,7 @@ FROM
                     ISNULL(SUM([AM_L2_REV]), 0) [AM_L2_REV],
                     ISNULL(SUM([AM_L1_PO]), 0) [AM_L1_PO],
                     ISNULL(SUM([AM_L2_PO]), 0) [AM_L2_PO],
+                    ISNULL(SUM(ISIMPL), 0) AS QTD_IMPLANTS,
                     ISNULL(SUM(SPIFF_DEDUCTION), 0) AS [SPIFF_DEDUCTION]
                 FROM
                     qry_COMP_AM_DETAIL AS T
@@ -127,23 +127,6 @@ FROM
     AND D.YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
     LEFT JOIN (
         SELECT
-            AM_FOR_CREDIT_EMAIL OWNER_EMAIL,
-            IMPLANTED_YYYYMM Close_YYYYMM,
-            --SUM(IMPLANT_UNITS), 
-            SUM(IMPLANT_UNITS) * 3750 BAT_IMPLANT_PO
-        FROM
-            [dbo].[qryOpps] A
-        WHERE
-            A.REASON_FOR_IMPLANT__C = 'De Novo - BATwire'
-            AND ISIMPL = 1
-            AND IMPLANTED_YYYY = '2024'
-        GROUP BY
-            AM_FOR_CREDIT_EMAIL,
-            IMPLANTED_YYYYMM
-    ) AS BAT ON ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) = BAT.OWNER_EMAIL
-    AND BAT.Close_YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
-    LEFT JOIN (
-        SELECT
             SPIF_PO_YYYYMM,
             ISNULL(SUM(PO), 0) [PO],
             EMAIL
@@ -170,20 +153,6 @@ FROM
             EMAIL
     ) SP2 ON ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) = SP2.EMAIL
     AND sp2.SPIF_PO_YYYYMM = ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])
-    LEFT JOIN (
-        SELECT
-            SPIF_PO_YYYYMM,
-            ISNULL(SUM(PO), 0) [PO],
-            EMAIL
-        FROM
-            [dbo].[tblCPAS_PO]
-        WHERE
-            SPIF_TYPE = 'BULK'
-        GROUP BY
-            SPIF_PO_YYYYMM,
-            EMAIL
-    ) SP3 ON ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL) = SP3.EMAIL
-    AND SP3.SPIF_PO_YYYYMM = ISNULL(A.CLOSE_YYYYMM, B.YYYYMM)
 WHERE
     ISNULL(A.Role, B.ROLE) = 'REP'
     AND ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]) = (
@@ -197,4 +166,4 @@ WHERE
     AND LEFT(ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]), 4) = '2024'
 ORDER BY
     ISNULL(A.SALES_CREDIT_REP_EMAIL, B.EMP_EMAIL),
-    ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM]);
+    ISNULL(A.[CLOSE_YYYYMM], B.[YYYYMM])

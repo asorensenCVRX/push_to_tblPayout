@@ -62,7 +62,6 @@ SELECT
 FROM
     (
         /*** THIS IS THE GROUP BY AND PO SUBQUERY START **/
-        /* need to calculate RE_05 and RE_07 CSRs H2 payouts using ONLY H2 sales and revised FY quota for these two regions */
         SELECT
             (
                 SELECT
@@ -129,68 +128,31 @@ FROM
                 ),
                 0
             ) AS [YTD_BASE_BONUS_PAID],
-            CASE
-                WHEN C1.SALES_CREDIT_FCE_EMAIL IN (
-                    /* CSRs affected by H2 baseline/quota realignment */
-                    'hhussey@cvrx.com',
-                    'kmurphy@cvrx.com',
-                    'rmason@cvrx.com',
-                    'ycruea@cvrx.com',
-                    'swalz@cvrx.com',
-                    'cmccurley@cvrx.com'
-                ) THEN cast(
-                    /* calculate their payments off only H2 sales minus h2 payouts for previous h2 months */
-                    (C1.H2_SALES / nullif(X.QUOTA, 0)) * C2.BASE_BONUS AS money
-                ) - isnull(
-                    (
-                        SELECT
-                            SUM(CAST([VALUE] AS MONEY))
-                        FROM
-                            [dbo].[qryPayout_ADJ] A
-                        WHERE
-                            ROLE = 'FCE'
-                            AND CATEGORY = 'BASE_BONUS_PO'
-                            AND YYYYMM < (
-                                SELECT
-                                    YYYYMM
-                                FROM
-                                    qryCalendar
-                                WHERE
-                                    [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
-                            )
-                            AND YYYYMM >= '2024_07'
-                            AND c1.SALES_CREDIT_FCE_EMAIL = a.eid
-                    ),
-                    0
-                )
-                /* calc all other CSRs off FY sales minus FY payouts for previous 2024 months */
-                ELSE ISNULL(
-                    CAST(
-                        ISNULL(C1.SALES / NULLIF(X.QUOTA, 0), 0) * (C2.BASE_BONUS) AS MONEY
-                    ) - ISNULL(
-                        (
+            cast(
+                /* calculate their payments off only Q4 sales minus Q4 payouts for previous Q4 months */
+                (C1.Q4_SALES / nullif(X.QUOTA, 0)) * C2.BASE_BONUS AS money
+            ) - isnull(
+                (
+                    SELECT
+                        SUM(CAST([VALUE] AS MONEY))
+                    FROM
+                        [dbo].[qryPayout_ADJ] A
+                    WHERE
+                        ROLE = 'FCE'
+                        AND CATEGORY = 'BASE_BONUS_PO'
+                        AND YYYYMM < (
                             SELECT
-                                SUM(CAST([VALUE] AS MONEY))
+                                YYYYMM
                             FROM
-                                [dbo].[qryPayout_ADJ] A
+                                qryCalendar
                             WHERE
-                                ROLE = 'FCE'
-                                AND CATEGORY = 'BASE_BONUS_PO'
-                                AND YYYYMM < (
-                                    SELECT
-                                        YYYYMM
-                                    FROM
-                                        qryCalendar
-                                    WHERE
-                                        [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
-                                )
-                                AND c1.SALES_CREDIT_FCE_EMAIL = A.EID
-                        ),
-                        0
-                    ),
-                    0
-                )
-            END AS [BASE_BONUS_PO],
+                                [DT] = CAST(DATEADD(mm, -1, GETDATE()) AS DATE)
+                        )
+                        AND YYYYMM >= '2024_10'
+                        AND c1.SALES_CREDIT_FCE_EMAIL = a.eid
+                ),
+                0
+            ) AS [BASE_BONUS_PO],
             ISNULL(
                 (
                     SELECT
@@ -226,10 +188,10 @@ FROM
                     ISNULL(SUM([SALES_BASE]), 0) [SALES],
                     SUM(
                         CASE
-                            WHEN CLOSE_YYYYMM BETWEEN '2024_07'
+                            WHEN CLOSE_YYYYMM BETWEEN '2024_10'
                             AND '2024_12' THEN SALES_BASE
                         END
-                    ) AS H2_SALES,
+                    ) AS Q4_SALES,
                     ISNULL(SUM([isTarget?]), 0) [YTD_TGT_IMPLANTS],
                     SUM(PO_PER) [PO_PER],
                     SUM(TGT_PO) [TGT_PO],
