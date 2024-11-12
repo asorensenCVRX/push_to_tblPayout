@@ -5,7 +5,15 @@ from dateutil.relativedelta import relativedelta
 
 conn = engine.connect()
 last_month_full_date = datetime.now() - relativedelta(months=1)
-last_month = last_month_full_date.strftime("%Y-%m")
+last_month = last_month_full_date.strftime("%Y_%m")
+last_month_quarter = f"{last_month_full_date.year}_Q{((last_month_full_date.month - 1) // 3) + 1}"
+last_month_year = f"{last_month_full_date.year}"
+
+add_YTD_PO_replacements = {
+    "@yyyymm": f"'{last_month}'",
+    "@quarter": f"'{last_month_quarter}'",
+    "@year": f"'{last_month_year}'"
+}
 
 
 def remove_tmp_tables():
@@ -54,15 +62,27 @@ def push_to_tblpayout(**kwargs: list):
         push_fce = file.read()
     with open(r"queries/push_RM.sql") as file:
         push_rm = file.read()
+    with open("queries/add_YTD_PO.sql") as file:
+        push_ytd = file.read()
+        for old, new in add_YTD_PO_replacements.items():
+            push_ytd = push_ytd.replace(old, new)
+
     if emails is None:
         print(f"Deleting from tblPayout all records where YYYYMM = {last_month} (so there will not be duplicates).")
-        conn.execute(text(integrity_check))
-        conn.commit()
-        print(f"Pushing data for all roles to tblPayout...")
-        conn.execute(text(push_am))
-        conn.execute(text(push_fce))
-        conn.execute(text(push_rm))
-        conn.commit()
+        answer = input("Proceed? Y/N\n")
+        if answer.lower() == 'y':
+            conn.execute(text(integrity_check))
+            conn.commit()
+            print(f"Pushing data for all roles to tblPayout...")
+            conn.execute(text(push_am))
+            conn.execute(text(push_fce))
+            conn.execute(text(push_rm))
+            conn.execute(text(push_ytd.replace("@role", "'FCE'")))
+            conn.execute(text(push_ytd.replace("@role", "'REP'")))
+            conn.execute(text(push_ytd.replace("@role", "'RM'")))
+            conn.commit()
+        else:
+            print("Code halted. No data has been pushed.")
     else:
         revised_integrity_check = (integrity_check + " AND [EID] IN" + f" {emails}".replace('[', '(')
                                    .replace(']', ')'))
@@ -72,6 +92,8 @@ def push_to_tblpayout(**kwargs: list):
                             .replace(']', ')'))
         push_specific_rm = (push_rm + " WHERE [SALES_CREDIT_RM_EMAIL] IN" + f" {emails}"
                             .replace('[', '(').replace(']', ')'))
+        push_specific_ytd_po = (push_ytd + " AND [EID] IN" + f" {emails}".replace('[', '(')
+                                .replace(']', ')'))
         print(f"Deleting {emails} from tblPayout where YYYYMM = {last_month} "
               f"(so there will not be duplicates).")
         conn.execute(text(revised_integrity_check))
@@ -80,11 +102,14 @@ def push_to_tblpayout(**kwargs: list):
         conn.execute(text(push_specific_fce))
         conn.execute(text(push_specific_am))
         conn.execute(text(push_specific_rm))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'FCE'")))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'REP'")))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'RM'")))
         conn.commit()
 
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout(emails=['dabbring@cvrx.com'])
+push_to_tblpayout(emails=['dharper@cvrx.com', 'jviduna@cvrx.com', 'kwolf@cvrx.com'])
 
 conn.close()

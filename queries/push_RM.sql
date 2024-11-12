@@ -20,7 +20,7 @@ FROM
             CAST(A.[YYYYQQ] AS VARCHAR) AS [YYYYQQ],
             CAST(A.[QTY] AS VARCHAR) AS [QTY],
             CAST(A.[SALES] AS VARCHAR) AS [SALES],
-            CAST(A.[PO_FREQ] AS VARCHAR) AS [PO_FREQ],
+            -- CAST(A.[PO_FREQ] AS VARCHAR) AS [PO_FREQ],
             CAST(A.[GUR_AMT] AS VARCHAR) AS [GUR_AMT],
             CAST(A.[GUR_ADJ] AS VARCHAR) AS [GUR_ADJ],
             CAST(A.[RM_L1_PO] AS VARCHAR) AS [RM_L1_PO],
@@ -40,7 +40,7 @@ FROM
         [VALUE] FOR [CATEGORY] IN(
             [QTY],
             [SALES],
-            [PO_FREQ],
+            -- [PO_FREQ],
             [GUR_AMT],
             [GUR_ADJ],
             [RM_L1_PO],
