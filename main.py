@@ -17,34 +17,37 @@ add_YTD_PO_replacements = {
 
 
 def remove_tmp_tables():
-    with open(r"queries/rm_tmpAM_PO.sql") as file:
+    with open(r"queries/rm_tmpTM_PO.sql") as file:
         remove_am = file.read()
-    with open(r"queries/rm_tmpFCE_PO.sql") as file:
+    with open(r"queries/rm_tmpCS_PO.sql") as file:
         remove_fce = file.read()
-    with open(r"queries/rm_tmpRM_PO.sql") as file:
+    with open(r"queries/rm_tmpASD_PO.sql") as file:
         remove_rm = file.read()
-    print("Deleting tmpAM_PO...")
+    print("Deleting tmpTM_PO...")
     conn.execute(text(remove_am))
-    print("Deleting tmpFCE_PO...")
+    print("Deleting tmpCS_PO...")
     conn.execute(text(remove_fce))
-    print("Deleting tmpRM_PO...")
+    print("Deleting tmpASD_PO...")
     conn.execute(text(remove_rm))
     conn.commit()
 
 
 def create_tmp_tables():
-    with open(r"queries/create_tmpAM_PO.sql") as file:
-        create_am = file.read()
-    with open(r"queries/create_tmpFCE_PO.sql") as file:
-        create_fce = file.read()
-    with open(r"queries/create_tmpRM_PO.sql") as file:
-        create_rm = file.read()
-    print("Creating tmpAM_PO...")
-    conn.execute(text(create_am))
-    print("Creating tmpFCE_PO...")
-    conn.execute(text(create_fce))
-    print("Creating tmpRM_PO...")
-    conn.execute(text(create_rm))
+    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\TM Summary.sql") as file:
+        create_tm = file.read()
+        create_tm = create_tm.replace("-- INTO tmpTM_PO", "INTO tmpTM_PO")
+    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\CS Summary.sql") as file:
+        create_cs = file.read()
+        create_cs = create_cs.replace("-- INTO tmpCS_PO", "INTO tmpCS_PO")
+    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\AD Summary.sql") as file:
+        create_asd = file.read()
+        create_asd = create_asd.replace("-- INTO tmpASD_PO", "INTO tmpASD_PO")
+    print("Creating tmpTM_PO...")
+    conn.execute(text(create_tm))
+    print("Creating tmpCS_PO...")
+    conn.execute(text(create_cs))
+    print("Creating tmpASD_PO...")
+    conn.execute(text(create_asd))
     print("Pushing new tables to database...")
     conn.commit()
 
@@ -56,12 +59,12 @@ def push_to_tblpayout(**kwargs: list):
     emails = kwargs.get('emails', None)
     with open(r"queries/integrity_check.sql") as file:
         integrity_check = file.read()
-    with open(r"queries/push_AM.sql") as file:
-        push_am = file.read()
-    with open(r"queries/push_FCE.sql") as file:
-        push_fce = file.read()
-    with open(r"queries/push_RM.sql") as file:
-        push_rm = file.read()
+    with open(r"queries/push_TM.sql") as file:
+        push_tm = file.read()
+    with open(r"queries/push_CS.sql") as file:
+        push_cs = file.read()
+    with open(r"queries/push_ASD.sql") as file:
+        push_asd = file.read()
     with open("queries/add_YTD_PO.sql") as file:
         push_ytd = file.read()
         for old, new in add_YTD_PO_replacements.items():
@@ -74,23 +77,23 @@ def push_to_tblpayout(**kwargs: list):
             conn.execute(text(integrity_check))
             conn.commit()
             print(f"Pushing data for all roles to tblPayout...")
-            conn.execute(text(push_am))
-            conn.execute(text(push_fce))
-            conn.execute(text(push_rm))
-            conn.execute(text(push_ytd.replace("@role", "'FCE'")))
-            conn.execute(text(push_ytd.replace("@role", "'REP'")))
-            conn.execute(text(push_ytd.replace("@role", "'RM'")))
+            conn.execute(text(push_tm))
+            conn.execute(text(push_cs))
+            conn.execute(text(push_asd))
+            conn.execute(text(push_ytd.replace("@role", "'CS'")))
+            conn.execute(text(push_ytd.replace("@role", "'TM'")))
+            conn.execute(text(push_ytd.replace("@role", "'ASD'")))
             conn.commit()
         else:
             print("Code halted. No data has been pushed.")
     else:
         revised_integrity_check = (integrity_check + " AND [EID] IN" + f" {emails}".replace('[', '(')
                                    .replace(']', ')'))
-        push_specific_fce = (push_fce + " WHERE [FCE_EMAIL] IN" + F" {emails}".replace('[', '(')
+        push_specific_cs = (push_cs + " WHERE [SALES_CREDIT_CS_EMAIL] IN" + F" {emails}".replace('[', '(')
                              .replace(']', ')'))
-        push_specific_am = (push_am + " WHERE [REP_EMAIL] IN" + f" {emails}".replace('[', '(')
+        push_specific_tm = (push_tm + " WHERE [EID] IN" + f" {emails}".replace('[', '(')
                             .replace(']', ')'))
-        push_specific_rm = (push_rm + " WHERE [SALES_CREDIT_RM_EMAIL] IN" + f" {emails}"
+        push_specific_asd = (push_asd + " WHERE [SALES_CREDIT_ASD_EMAIL] IN" + f" {emails}"
                             .replace('[', '(').replace(']', ')'))
         push_specific_ytd_po = (push_ytd + " AND [EID] IN" + f" {emails}".replace('[', '(')
                                 .replace(']', ')'))
@@ -99,17 +102,17 @@ def push_to_tblpayout(**kwargs: list):
         conn.execute(text(revised_integrity_check))
         conn.commit()
         print(f"Pushing data to tblPayout for {emails}")
-        conn.execute(text(push_specific_fce))
-        conn.execute(text(push_specific_am))
-        conn.execute(text(push_specific_rm))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'FCE'")))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'REP'")))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'RM'")))
+        conn.execute(text(push_specific_cs))
+        conn.execute(text(push_specific_tm))
+        conn.execute(text(push_specific_asd))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'CS'")))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'TM'")))
+        conn.execute(text(push_specific_ytd_po.replace("@role", "'ASD'")))
         conn.commit()
 
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout(emails=['dharper@cvrx.com', 'jviduna@cvrx.com', 'kwolf@cvrx.com'])
+push_to_tblpayout()
 
 conn.close()

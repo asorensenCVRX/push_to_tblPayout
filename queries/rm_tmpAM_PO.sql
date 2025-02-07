@@ -1,1 +1,0 @@
-IF OBJECT_ID(N'dbo.tmpAM_PO', N'U') IS NOT NULL DROP TABLE dbo.tmpAM_PO

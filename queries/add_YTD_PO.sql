@@ -26,7 +26,7 @@ FROM
     (
         SELECT
             EID,
-            sum(cast(value AS float)) AS VALUE
+            ROUND(sum(cast(value AS float)), 0) AS VALUE
         FROM
             tblPayout
         WHERE
