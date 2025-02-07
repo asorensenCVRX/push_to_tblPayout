@@ -21,7 +21,7 @@ FROM
             CAST(SALES AS VARCHAR) AS SALES,
             CAST(TGT_PO AS VARCHAR) AS TGT_PO,
             CAST(REGIONAL_PO AS VARCHAR) AS REGIONAL_PO,
-            CAST(TOTAL_PO AS VARCHAR) AS TOTAL_PO,
+            CAST(TOTAL_PO AS VARCHAR) AS PO_AMT,
             CAST(YTD_SALES AS VARCHAR) AS YTD_SALES,
             CAST([%_FY_PLAN] AS VARCHAR) AS [%_FY_PLAN]
         FROM
@@ -31,7 +31,7 @@ FROM
             SALES,
             TGT_PO,
             REGIONAL_PO,
-            TOTAL_PO,
+            PO_AMT,
             YTD_SALES,
             [%_FY_PLAN]
         )
