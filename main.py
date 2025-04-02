@@ -139,6 +139,6 @@ def push_to_tblpayout(**kwargs: list):
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout(emails=['lhinojos@cvrx.com'])
+push_to_tblpayout()
 
 conn.close()

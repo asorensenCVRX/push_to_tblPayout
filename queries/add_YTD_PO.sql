@@ -1,7 +1,19 @@
+-- DECLARE @yyyymm VARCHAR(7) = '2025_03';
+
+
+-- DECLARE @quarter VARCHAR(7) = '2025_Q1';
+
+
+-- DECLARE @role VARCHAR(5) = 'CS';
+
+
+-- DECLARE @year INT = 2025;
+
+
 /***************/
 INSERT INTO
     tblPayout
-/**************/
+    /**************/
 SELECT
     @yyyymm AS YYYYMM,
     EID,
