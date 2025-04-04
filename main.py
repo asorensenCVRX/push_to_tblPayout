@@ -1,7 +1,10 @@
+import pandas as pd
+import openpyxl
 from database import engine
 from sqlalchemy import text
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import logging
 
 conn = engine.connect()
 last_month_full_date = datetime.now() - relativedelta(months=1)
@@ -100,12 +103,15 @@ def push_to_tblpayout(**kwargs: list):
             conn.execute(text(push_atm))
             conn.execute(text(push_cs))
             conn.execute(text(push_asd))
+            conn.commit()
+            fix_value_errors()
             conn.execute(text(push_ytd.replace("@role", "'CS'")))
             conn.execute(text(push_ytd.replace("@role", "'TM'")))
             conn.execute(text(push_ytd.replace("@role", "'ATM'")))
             conn.execute(text(push_ytd.replace("@role", "'ASD'")))
             conn.execute(text(push_regional_ytd.replace("@role", "'CS'")))
             conn.commit()
+            fix_value_errors()
         else:
             print("Code halted. No data has been pushed.")
     else:
@@ -129,16 +135,68 @@ def push_to_tblpayout(**kwargs: list):
         conn.execute(text(push_specific_tm))
         conn.execute(text(push_specific_asd))
         conn.execute(text(push_specific_atm))
+        conn.commit()
+        fix_value_errors()
         conn.execute(text(push_specific_ytd_po.replace("@role", "'CS'")))
         conn.execute(text(push_specific_ytd_po.replace("@role", "'TM'")))
         conn.execute(text(push_specific_ytd_po.replace("@role", "'ASD'")))
         conn.execute(text(push_specific_ytd_po.replace("@role", "'ATM'")))
         conn.execute(text(push_specific_regional_ytd.replace("@role", "'CS'")))
         conn.commit()
+        fix_value_errors()
+
+
+def fix_value_errors():
+    """Some values default to scientific notation, causing problems when trying to cast the values from varchar to
+    float. This function fixes all those values."""
+    try:
+        query = """SELECT
+                    YYYYMM,
+                    EID,
+                    YYYYQQ,
+                    ROLE,
+                    [STATUS],
+                    [VALUE],
+                    CATEGORY,
+                    Notes
+                FROM
+                    tblPayout
+                WHERE
+                    TRY_CAST(value AS decimal(15, 2)) IS NULL
+                    AND value IS NOT NULL
+                    AND LEFT(YYYYMM, 4) >= 2025"""
+        query_df = pd.read_sql_query(query, conn)
+        query_df[["v", "multiplier"]] = query_df["VALUE"].str.split('e+', expand=True, regex=False).astype(float)
+        query_df["multiplier"] = 10 ** query_df["multiplier"]
+        query_df["NEW_VALUE"] = (query_df["v"] * query_df["multiplier"]).astype(str)
+
+        logging.exception("fix_value_errors() exception logged")
+        for index, row in query_df.iterrows():
+            try:
+                sql = text("""UPDATE tblPayout
+                        SET [VALUE] = :new_value
+                        WHERE YYYYMM = :yyyymm
+                        AND EID = :eid
+                        AND [ROLE] = :role
+                        AND [CATEGORY] = :category""")
+                conn.execute(sql, {
+                    'new_value': row["NEW_VALUE"],
+                    'yyyymm': row["YYYYMM"],
+                    'eid': row["EID"],
+                    'role': row["ROLE"],
+                    'category': row["CATEGORY"]
+                })
+                conn.commit()
+            except ValueError:
+                pass
+    except ValueError:
+        pass
+
 
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout()
+push_to_tblpayout(emails=['tkirk@cvrx.com'])
+
 
 conn.close()
