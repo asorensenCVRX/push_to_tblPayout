@@ -1,6 +1,0 @@
--- DELETE FROM
---     tblPayout
--- WHERE
---     YYYYMM = '2025_03'
---     AND CATEGORY = 'YTD_PO'
---     AND ROLE = 'CS'
