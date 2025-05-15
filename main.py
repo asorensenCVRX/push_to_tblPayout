@@ -24,124 +24,115 @@ def py_list_to_sql_list(lst):
 
 
 def remove_tmp_tables():
-    with open(r"queries/rm_tmpTM_PO.sql") as file:
-        remove_am = file.read()
-    with open(r"queries/rm_tmpCS_PO.sql") as file:
-        remove_fce = file.read()
-    with open(r"queries/rm_tmpASD_PO.sql") as file:
-        remove_rm = file.read()
-    with open(r"queries/rm_tmpATM_PO.sql") as file:
-        remove_atm = file.read()
-    print("Deleting tmpTM_PO...")
-    conn.execute(text(remove_am))
-    print("Deleting tmpATM_PO...")
-    conn.execute(text(remove_atm))
-    print("Deleting tmpCS_PO...")
-    conn.execute(text(remove_fce))
-    print("Deleting tmpASD_PO...")
-    conn.execute(text(remove_rm))
+    files = [
+        ("queries/rm_tmpTM_PO.sql", "tmpTM_PO"),
+        ("queries/rm_tmpATM_PO.sql", "tmpATM_PO"),
+        ("queries/rm_tmpCS_PO.sql", "tmpCS_PO"),
+        ("queries/rm_tmpASD_PO.sql", "tmpASD_PO"),
+    ]
+
+    for path, label in files:
+        with open(path) as file:
+            sql = file.read()
+        print(f"Deleting {label}...")
+        conn.execute(text(sql))
+
     conn.commit()
 
 
 def create_tmp_tables():
-    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\TM Summary.sql") as file:
-        create_tm = file.read()
-        create_tm = create_tm.replace("-- INTO tmpTM_PO", "INTO tmpTM_PO")
-    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\CS Summary.sql") as file:
-        create_cs = file.read()
-        create_cs = create_cs.replace("-- INTO tmpCS_PO", "INTO tmpCS_PO")
-    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\AD Summary.sql") as file:
-        create_asd = file.read()
-        create_asd = create_asd.replace("-- INTO tmpASD_PO", "INTO tmpASD_PO")
-    with open(r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\ATM Summary.sql") as file:
-        create_atm = file.read()
-        create_atm = create_atm.replace("--INTO tmpATM_PO", "INTO tmpATM_PO")
-    print("Creating tmpTM_PO...")
-    conn.execute(text(create_tm))
-    print("Creating tmpATM_PO...")
-    conn.execute(text(create_atm))
-    print("Creating tmpCS_PO...")
-    conn.execute(text(create_cs))
-    print("Creating tmpASD_PO...")
-    conn.execute(text(create_asd))
+    files = [
+        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\TM Summary.sql", "tmpTM_PO"),
+        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\ATM Summary.sql", "tmpATM_PO"),
+        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\CS Summary.sql", "tmpCS_PO"),
+        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\AD Summary.sql", "tmpASD_PO"),
+    ]
+
+    for path, label in files:
+        with open(path) as file:
+            sql = file.read().replace("-- INTO", f"INTO")
+        print(f"Creating {label}...")
+        conn.execute(text(sql))
+
     print("Pushing new tables to database...")
     conn.commit()
 
 
 def push_to_tblpayout(**kwargs: list):
-    """Use kwargs 'emails=' to push data only for specific people. Must be entered as a list. There is an integrity
-    check in place to delete data from the table for the same month and email before pushing the new data,
-    so there will not be duplicate entries. Note that leaving the kwargs blank will push data for everyone."""
+    """Push payout data to tblPayout with optional email filter."""
     emails = kwargs.get('emails', None)
-    with open(r"queries/integrity_check.sql") as file:
-        integrity_check = file.read()
-    with open(r"queries/push_TM.sql") as file:
-        push_tm = file.read()
-    with open(r"queries/push_ATM.sql") as file:
-        push_atm = file.read()
-    with open(r"queries/push_CS.sql") as file:
-        push_cs = file.read()
-    with open(r"queries/push_ASD.sql") as file:
-        push_asd = file.read()
-    with open("queries/add_YTD_PO.sql") as file:
-        push_ytd = file.read()
-        for old, new in add_YTD_PO_replacements.items():
-            push_ytd = push_ytd.replace(old, new)
-    with open("queries/add_YTD_regional_PO.sql") as file:
-        push_regional_ytd = file.read()
-        for old, new in add_YTD_PO_replacements.items():
-            push_regional_ytd = push_regional_ytd.replace(old, new)
+
+    # Load and prepare SQL queries
+    def load_sql(path, replacements=None):
+        with open(path) as f:
+            sql = f.read()
+            if replacements:
+                for old, new in replacements.items():
+                    sql = sql.replace(old, new)
+            return sql
+
+    queries = {
+        'integrity_check': load_sql("queries/integrity_check.sql"),
+        'push_tm': load_sql("queries/push_TM.sql"),
+        'push_atm': load_sql("queries/push_ATM.sql"),
+        'push_cs': load_sql("queries/push_CS.sql"),
+        'push_asd': load_sql("queries/push_ASD.sql"),
+        'push_ytd': load_sql("queries/add_YTD_PO.sql", add_YTD_PO_replacements),
+        'push_regional_ytd': load_sql("queries/add_YTD_regional_PO.sql", add_YTD_PO_replacements),
+    }
+
+    roles = ['CS', 'TM', 'ATM', 'ASD']
+
+    def push_ytd(sql_template, emails_filter=None):
+        for role in roles:
+            sql = sql_template.replace("@role", f"'{role}'")
+            if emails_filter:
+                sql += f" AND [EID] IN {emails_filter}"
+            conn.execute(text(sql))
 
     if emails is None:
-        print(f"Deleting from tblPayout all records where YYYYMM = {last_month} (so there will not be duplicates).")
-        answer = input("Proceed? Y/N\n")
-        if answer.lower() == 'y':
-            conn.execute(text(integrity_check))
+        print(f"Deleting from tblPayout all records where YYYYMM = {last_month}.")
+        if input("Proceed? Y/N\n").lower() == 'y':
+            conn.execute(text(queries['integrity_check']))
             conn.commit()
-            print(f"Pushing data for all roles to tblPayout...")
-            conn.execute(text(push_tm))
-            conn.execute(text(push_atm))
-            conn.execute(text(push_cs))
-            conn.execute(text(push_asd))
+
+            print("Pushing data for all roles to tblPayout...")
+            for key in ['push_tm', 'push_atm', 'push_cs', 'push_asd']:
+                conn.execute(text(queries[key]))
             conn.commit()
             fix_value_errors()
-            conn.execute(text(push_ytd.replace("@role", "'CS'")))
-            conn.execute(text(push_ytd.replace("@role", "'TM'")))
-            conn.execute(text(push_ytd.replace("@role", "'ATM'")))
-            conn.execute(text(push_ytd.replace("@role", "'ASD'")))
-            conn.execute(text(push_regional_ytd.replace("@role", "'CS'")))
+
+            push_ytd(queries['push_ytd'])
+            conn.execute(text(queries['push_regional_ytd'].replace("@role", "'CS'")))
             conn.commit()
             fix_value_errors()
         else:
             print("Code halted. No data has been pushed.")
     else:
-        revised_integrity_check = integrity_check + " AND [EID] IN" + f" {py_list_to_sql_list(emails)}"
-        push_specific_cs = push_cs + " WHERE [SALES_CREDIT_CS_EMAIL] IN" + F" {py_list_to_sql_list(emails)}"
-        push_specific_tm = push_tm + " WHERE [EID] IN" + f" {py_list_to_sql_list(emails)}"
-        push_specific_atm = push_atm.replace("FROM ##ATM", F"FROM ##ATM WHERE EID IN"
-                                                           F" {py_list_to_sql_list(emails)}")
-        push_specific_asd = push_asd + " WHERE [SALES_CREDIT_ASD_EMAIL] IN" + f" {py_list_to_sql_list(emails)}"
-        push_specific_ytd_po = push_ytd + " AND [EID] IN" + f" {py_list_to_sql_list(emails)}"
-        push_specific_regional_ytd = push_regional_ytd + " AND [EID] IN" + f" {py_list_to_sql_list(emails)}"
+        email_list = py_list_to_sql_list(emails)
+        print(f"Deleting {emails} from tblPayout where YYYYMM = {last_month}.")
 
-        print(f"Deleting {emails} from tblPayout where YYYYMM = {last_month} "
-              f"(so there will not be duplicates).")
-
-        conn.execute(text(revised_integrity_check))
+        revised_integrity = queries['integrity_check'] + f" AND [EID] IN {email_list}"
+        conn.execute(text(revised_integrity))
         conn.commit()
 
-        print(f"Pushing data to tblPayout for {emails}")
-        conn.execute(text(push_specific_cs))
-        conn.execute(text(push_specific_tm))
-        conn.execute(text(push_specific_asd))
-        conn.execute(text(push_specific_atm))
+        print(f"Pushing data to tblPayout for {emails}...")
+
+        filtered_queries = {
+            'push_tm': queries['push_tm'] + f" WHERE [EID] IN {email_list}",
+            'push_cs': queries['push_cs'] + f" WHERE [SALES_CREDIT_CS_EMAIL] IN {email_list}",
+            'push_asd': queries['push_asd'] + f" WHERE [SALES_CREDIT_ASD_EMAIL] IN {email_list}",
+            'push_atm': queries['push_atm'].replace("FROM ##ATM", f"FROM ##ATM WHERE EID IN {email_list}"),
+        }
+
+        for q in filtered_queries.values():
+            conn.execute(text(q))
         conn.commit()
         fix_value_errors()
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'CS'")))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'TM'")))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'ASD'")))
-        conn.execute(text(push_specific_ytd_po.replace("@role", "'ATM'")))
-        conn.execute(text(push_specific_regional_ytd.replace("@role", "'CS'")))
+
+        push_ytd(queries['push_ytd'], email_list)
+        regional_ytd = queries['push_regional_ytd'].replace("@role", "'CS'") + f" AND [EID] IN {email_list}"
+        conn.execute(text(regional_ytd))
         conn.commit()
         fix_value_errors()
 
@@ -196,7 +187,7 @@ def fix_value_errors():
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout(emails=['tkirk@cvrx.com'])
+push_to_tblpayout()
 
 
 conn.close()
