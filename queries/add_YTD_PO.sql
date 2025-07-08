@@ -10,6 +10,14 @@
 -- DECLARE @year INT = 2025;
 
 
+-- DELETE FROM
+--     tblPayout
+-- WHERE
+--     YYYYMM = @yyyymm
+--     AND [ROLE] = @role
+--     AND [CATEGORY] = 'YTD_PO';
+
+
 /***************/
 INSERT INTO
     tblPayout

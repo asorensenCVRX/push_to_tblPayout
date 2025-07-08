@@ -18,12 +18,12 @@ FROM
         SELECT
             YYYYMM,
             SALES_CREDIT_CS_EMAIL,
-            CAST(SALES AS VARCHAR) AS SALES,
-            CAST(TGT_PO AS VARCHAR) AS TGT_PO,
-            CAST(REGIONAL_PO AS VARCHAR) AS REGIONAL_PO,
-            CAST(TOTAL_PO AS VARCHAR) AS PO_AMT,
-            CAST(YTD_SALES AS VARCHAR) AS YTD_SALES,
-            CAST([%_FY_PLAN] AS VARCHAR) AS [%_FY_PLAN]
+            FORMAT(SALES, '0.00') AS SALES,
+            FORMAT(TGT_PO, '0.00') AS TGT_PO,
+            FORMAT(REGIONAL_PO, '0.00') AS REGIONAL_PO,
+            FORMAT(TOTAL_PO, '0.00') AS PO_AMT,
+            FORMAT(YTD_SALES, '0.00') AS YTD_SALES,
+            FORMAT([%_FY_PLAN], '0.0000') AS [%_FY_PLAN]
         FROM
             tmpCS_PO
     ) AS P UNPIVOT (
