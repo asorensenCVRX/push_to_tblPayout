@@ -28,8 +28,7 @@ def remove_tmp_tables():
         ("queries/rm_tmpTM_PO.sql", "tmpTM_PO"),
         ("queries/rm_tmpATM_PO.sql", "tmpATM_PO"),
         ("queries/rm_tmpCS_PO.sql", "tmpCS_PO"),
-        ("queries/rm_tmpASD_PO.sql", "tmpASD_PO"),
-        ("queries/rm_tmpCEA_PO.sql", "tmpCEA_PO")
+        ("queries/rm_tmpASD_PO.sql", "tmpASD_PO")
     ]
 
     for path, label in files:
@@ -46,8 +45,7 @@ def create_tmp_tables():
         (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\TM Summary.sql", "tmpTM_PO"),
         (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\ATM Summary.sql", "tmpATM_PO"),
         (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\CS Summary.sql", "tmpCS_PO"),
-        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\AD Summary.sql", "tmpASD_PO"),
-        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\CEA Summary.sql", "tmpCEA_PO")
+        (r"C:\Users\asorensen\OneDrive - CVRx Inc\SQL\Comp Summaries\AD Summary.sql", "tmpASD_PO")
     ]
 
     for path, label in files:
@@ -79,12 +77,11 @@ def push_to_tblpayout(**kwargs: list):
         'push_atm': load_sql("queries/push_ATM.sql"),
         'push_cs': load_sql("queries/push_CS.sql"),
         'push_asd': load_sql("queries/push_ASD.sql"),
-        'push_cea': load_sql("queries/push_CEA.sql"),
         'push_ytd': load_sql("queries/add_YTD_PO.sql", add_YTD_PO_replacements),
         'push_regional_ytd': load_sql("queries/add_YTD_regional_PO.sql", add_YTD_PO_replacements),
     }
 
-    roles = ['CS', 'TM', 'ATM', 'ASD', 'CEA']
+    roles = ['CS', 'TM', 'ATM', 'ASD']
 
     def push_ytd(sql_template, emails_filter=None):
         for role in roles:
@@ -125,8 +122,7 @@ def push_to_tblpayout(**kwargs: list):
             'push_tm': queries['push_tm'] + f" WHERE [EID] IN {email_list}",
             'push_cs': queries['push_cs'] + f" WHERE [SALES_CREDIT_CS_EMAIL] IN {email_list}",
             'push_asd': queries['push_asd'] + f" WHERE [SALES_CREDIT_ASD_EMAIL] IN {email_list}",
-            'push_atm': queries['push_atm'].replace("FROM ##ATM", f"FROM ##ATM WHERE EID IN {email_list}"),
-            'push_cea': queries['push_cea'] + f" WHERE [EID] IN {email_list}"
+            'push_atm': queries['push_atm'].replace("FROM ##ATM", f"FROM ##ATM WHERE EID IN {email_list}")
         }
 
         for q in filtered_queries.values():
@@ -189,9 +185,9 @@ def fix_value_errors():
 
 
 
-# remove_tmp_tables()
-# create_tmp_tables()
-push_to_tblpayout(emails=['jtsokanos@cvrx.com'])
+remove_tmp_tables()
+create_tmp_tables()
+push_to_tblpayout(emails=[])
 
 
 conn.close()
