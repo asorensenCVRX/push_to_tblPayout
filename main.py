@@ -58,10 +58,8 @@ def create_tmp_tables():
     conn.commit()
 
 
-def push_to_tblpayout(**kwargs: list):
+def push_to_tblpayout(emails: list[str] | None = None):
     """Push payout data to tblPayout with optional email filter."""
-    emails = kwargs.get('emails', None)
-
     # Load and prepare SQL queries
     def load_sql(path, replacements=None):
         with open(path) as f:
@@ -187,7 +185,7 @@ def fix_value_errors():
 
 remove_tmp_tables()
 create_tmp_tables()
-push_to_tblpayout(emails=[])
+push_to_tblpayout()
 
 
 conn.close()
