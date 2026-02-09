@@ -120,7 +120,7 @@ def push_to_tblpayout(emails: list[str] | None = None):
             'push_tm': queries['push_tm'] + f" WHERE [EID] IN {email_list}",
             'push_cs': queries['push_cs'] + f" WHERE [SALES_CREDIT_CS_EMAIL] IN {email_list}",
             'push_asd': queries['push_asd'] + f" WHERE [SALES_CREDIT_ASD_EMAIL] IN {email_list}",
-            'push_atm': queries['push_atm'].replace("FROM ##ATM", f"FROM ##ATM WHERE EID IN {email_list}")
+            'push_atm': queries['push_atm'] + f" AND [ATM_EMAIL] IN {email_list}"
         }
 
         for q in filtered_queries.values():
@@ -180,7 +180,6 @@ def fix_value_errors():
                 pass
     except ValueError:
         pass
-
 
 
 remove_tmp_tables()

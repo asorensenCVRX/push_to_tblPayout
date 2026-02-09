@@ -1,1 +1,0 @@
-IF OBJECT_ID(N'dbo.tmpCEA_PO', N'U') IS NOT NULL DROP TABLE dbo.tmpCEA_PO
