@@ -28,4 +28,4 @@ FROM
             IMPLANT_UNITS,
             REVENUE_UNITS
         )
-    ) AS UNPVT;
+    ) AS UNPVT
