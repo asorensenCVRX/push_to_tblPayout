@@ -16,6 +16,8 @@ FROM
             YYYYMM,
             YYYYQQ,
             FORMAT(SALES, '0.00') AS SALES,
+            FORMAT(ATM_ACCOUNT_REVENUE, '0.00') AS ATM_ACCOUNT_REV,
+            FORMAT(ATM_ACCOUNT_PO, '0.00') AS ATM_ACCOUNT_PO,
             FORMAT(L1_REV, '0.00') AS L1_REV,
             FORMAT(L1_PO, '0.00') AS L1_PO,
             FORMAT(L2_REV, '0.00') AS L2_REV,
@@ -35,6 +37,8 @@ FROM
     ) AS P UNPIVOT (
         [VALUE] FOR [CATEGORY] IN (
             SALES,
+            ATM_ACCOUNT_REV,
+            ATM_ACCOUNT_PO,
             L1_REV,
             L1_PO,
             L2_REV,
